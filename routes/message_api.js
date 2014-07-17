@@ -10,6 +10,31 @@ var connection = mysql.createConnection({
 });
 
 
+function mysql_real_escape_string(str) {
+    return str.replace(/[\0\x08\x09\x1a\n\r"'\\\%]/g, function(char) {
+        switch (char) {
+            case "\0":
+                return "\\0";
+            case "\x08":
+                return "\\b";
+            case "\x09":
+                return "\\t";
+            case "\x1a":
+                return "\\z";
+            case "\n":
+                return "\\n";
+            case "\r":
+                return "\\r";
+            case "\"":
+            case "'":
+            case "\\":
+            case "%":
+                return "\\" + char; // prepends a backslash to backslash, percent,
+                // and double/single quotes
+        }
+    });
+}
+
 /* GET users listing. */
 router.get('/', function(req, res) {
     res.send('this the Message / Chat API');
@@ -19,64 +44,77 @@ router.route('/chat')
     .post(function(req, res) {
 
         req.checkBody('message', 'Please enter Chat / Message').notEmpty();
+        req.checkBody('user_id', 'User ID is Empty').notEmpty();
+        req.checkBody('receiver_id', 'Receiver ID is Empty').notEmpty();
 
         var errors = req.validationErrors(true);
         if (errors) {
-            res.json({
-                message: errors,
-                success: false
-            });
+            res.contentType('application/json');
+            res.send([{
+                "message": errors,
+                "success": false
+            }]);
             return;
         } else {
-            new employeeDB({
-                firstName: req.body.firstName,
-                lastName: req.body.lastName,
-                managerId: req.body.managerId,
-                managerName: req.body.managerName,
-                reports: req.body.reports,
-                title: req.body.title,
-                department: req.body.department,
-                officePhone: req.body.officePhone,
-                cellPhone: req.body.cellPhone,
-                email: req.body.email,
-                city: req.body.city,
-                pic: req.body.pic,
-                twitterId: req.body.twitterId,
-                facebook: req.body.facebook
-            }).save(function(err, employeedbs) {
-                if (err) return next(err);
-                res.json({
-                    message: 'Record created!',
-                    _id: employeedbs._id,
-                    success: true
-                });
-            })
+            if (connection) {
+                var sSQL = 'INSERT INTO messages (user_id,receiver_id,message,datecreated) VALUES(\'' + req.body.user_id + '\',\'' + req.body.receiver_id + '\',\'' + mysql_real_escape_string(req.body.message) + '\',NOW())';
+                connection.query(sSQL,
+                    function(err, rows, fields) {
+                        if (err) throw err;
+                        if (rows)
+                            res.contentType('application/json');
+                        res.send([{
+                            "message": 'Message Sent!',
+                            "_Id": rows.insertId,
+                            "success": true
+                        }]);
+                    });
+            }
         }
 
     });
 
 
-router.route('/chat/user/:user_id')
+router.route('/chat/:user_id/:receiver_id')
     .get(function(req, res) {
-        employeeDB.findOne({
-            _id: req.params.id
-        }, function(err, employeedbs) {
-            if (err)
-                res.send(err);
-            res.json(employeedbs);
-        })
+        var user_id = req.params.user_id;
+        var receiver_id = req.params.receiver_id;
+
+        if (connection) {
+            var queryString = 'SELECT * FROM messages where user_id = ? AND receiver_id=?';
+            connection.query(queryString, [user_id,receiver_id], function(err, rows, fields) {
+                if (err) throw err;
+                res.contentType('application/json');
+                res.send(rows);
+                res.end();
+            });
+        }
     })
     .delete(function(req, res) {
-        employeeDB.remove({
-            _id: req.params.id
-        }, function(err, employeedbs) {
-            if (err)
-                res.send(err);
-            res.json({
-                message: 'Successfully deleted',
-                success: true
-            });
-        })
+        connection.query('DELETE FROM messages WHERE user_id = ' + req.params.user_id + ' AND receiver_id = ' + req.params.receiver_id, function(err, result) {
+            if (err) throw err;
+
+            if (result)
+                res.type('application/json');
+            res.send([{
+                "message": 'Message deleted',
+                "success": true
+            }]);
+        });
+    });
+
+router.route('/chat/delete/:user_id/:chat_id')
+    .delete(function(req, res) {
+        connection.query('DELETE FROM messages WHERE user_id = ' + req.params.user_id + ' AND id = ' + req.params.chat_id, function(err, result) {
+            if (err) throw err;
+
+            if (result)
+                res.type('application/json');
+            res.send([{
+                "message": 'Message deleted',
+                "success": true
+            }]);
+        });
     });
 
 module.exports = router;
