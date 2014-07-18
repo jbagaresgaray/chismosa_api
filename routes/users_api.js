@@ -17,12 +17,23 @@ router.get('/', function(req, res) {
 router.route('/user')
     .get(function(req, res) {
         if (connection) {
-            connection.query('SELECT * FROM user ORDER BY name', function(err, rows, fields) {
+            connection.query('SELECT id,name,areacode,mobile_number,email,pic_file_name,cover_file_name FROM user ORDER BY name', function(err, rows, fields) {
                 if (err) throw err;
 
-                if (rows)
+                if (rows) {
                     res.contentType('application/json');
-                res.send(rows);
+                    res.send([{
+                        "users": rows,
+                        "success": true
+                    }]);
+                } else {
+                    res.contentType('application/json');
+                    res.send([{
+                        "message": 'No user existed with that account',
+                        "success": false
+                    }]);
+                }
+
             });
         }
     })
@@ -61,6 +72,36 @@ router.route('/user')
         }
     });
 
+router.route('/user/login')
+    .post(function(req, res) {
+
+        req.checkBody('mobile_number', 'Please enter Mobile Number').notEmpty();
+        req.checkBody('password', 'Please enter Password').notEmpty();
+
+        var errors = req.validationErrors(true);
+        if (errors) {
+            res.contentType('application/json');
+            res.json([{
+                message: errors,
+                success: false
+            }]);
+            return;
+        } else {
+            if (connection) {
+                var queryString = 'SELECT id,name,areacode,mobile_number,email,pic_file_name,cover_file_name FROM user WHERE CONCAT(areacode,mobile_number)=? AND `password`=?';
+                connection.query(queryString, [req.body.mobile_number, req.body.password], function(err, rows, fields) {
+                    if (err) throw err;
+                    res.contentType('application/json');
+                    res.contentType('application/json');
+                    res.send([{
+                        "users": rows,
+                        "success": true
+                    }]);
+                });
+            }
+        }
+
+    });
 
 router.route('/user/:id')
     .get(function(req, res) {
@@ -118,6 +159,21 @@ router.route('/user/:id')
                 "success": true
             }]);
         });
+    });
+
+
+router.route('/user/picture:user_id')
+    .get(function(req, res) {
+        var id = req.params.user_id;
+        if (connection) {
+            var queryString = 'SELECT * FROM user_pic where id = ?';
+            connection.query(queryString, [id], function(err, rows, fields) {
+                if (err) throw err;
+                res.contentType('application/json');
+                res.send(rows);
+                res.end();
+            });
+        }
     });
 
 

@@ -17,5 +17,10 @@ CREATE TABLE `user` (
   `active` BIT DEFAULT 0 NOT NULL,
   `datecreated` DATETIME NOT NULL,
   `dateupdated` DATETIME NOT NULL,
+  `pic_file_name` VARCHAR(255) NULL,
+  `pic_blob` LONGBLOB NULL,
+  `cover_blob` LONGBLOB NULL,
+  `cover_file_name` VARCHAR(255)
+
   PRIMARY KEY (`id`)
 );

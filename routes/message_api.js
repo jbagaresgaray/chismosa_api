@@ -82,7 +82,7 @@ router.route('/chat/:user_id/:receiver_id')
 
         if (connection) {
             var queryString = 'SELECT * FROM messages where user_id = ? AND receiver_id=?';
-            connection.query(queryString, [user_id,receiver_id], function(err, rows, fields) {
+            connection.query(queryString, [user_id, receiver_id], function(err, rows, fields) {
                 if (err) throw err;
                 res.contentType('application/json');
                 res.send(rows);
