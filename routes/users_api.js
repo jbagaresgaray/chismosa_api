@@ -121,46 +121,56 @@ router.route('/user/login')
                     if (err) throw err;
 
                     var primPic, coverPhoto;
+                    console.log(row.length);
+                    if (row.length > 0) {
+                        if (row[0].pic_blob) {
+                            primPic = new Buffer(row[0].pic_blob, 'binary').toString('base64');
+                        } else {
+                            primPic = null;
+                        }
 
-                    if (row[0].pic_blob) {
-                        primPic = new Buffer(row[0].pic_blob, 'binary').toString('base64');
+                        if (row[0].cover_blob) {
+                            coverPhoto = new Buffer(row[0].cover_blob, 'binary').toString('base64');
+                        } else {
+                            coverPhoto = null;
+                        }
+
+                        res.json([{
+                            users: [{
+                                active: row[0].active[0],
+                                areacode: row[0].areacode,
+                                cover_blob: coverPhoto,
+                                cover_file_name: row[0].cover_file_name,
+                                datecreated: row[0].datecreated,
+                                dateupdated: row[0].dateupdated,
+                                email: row[0].email,
+                                facebook: row[0].facebook,
+                                facebook_password: row[0].facebook_password,
+                                gplus: row[0].gplus,
+                                gplus_password: row[0].gplus_password,
+                                id: row[0].id,
+                                linkedin: row[0].linkedin,
+                                linkedin_password: row[0].linkedin_password,
+                                message_status: row[0].message_status,
+                                mobile_number: row[0].mobile_number,
+                                name: row[0].name,
+                                password: row[0].password,
+                                pic_blob: primPic,
+                                pic_file_name: row[0].pic_file_name,
+                                twitter: row[0].twitter,
+                                twitter_password: row[0].twitter_password
+                            }],
+                            success: true
+                        }]);
                     } else {
-                        primPic = null;
+                        res.contentType('application/json');
+                        res.send([{
+                            "success": false,
+                            "message": 'No user existed with that account'
+                        }]);
+                        res.end();
                     }
 
-                    if (row[0].cover_blob) {
-                        coverPhoto = new Buffer(row[0].cover_blob, 'binary').toString('base64');
-                    } else {
-                        coverPhoto = null;
-                    }
-
-                    res.json([{
-                        users: [{
-                            active: row[0].active[0],
-                            areacode: row[0].areacode,
-                            cover_blob: coverPhoto,
-                            cover_file_name: row[0].cover_file_name,
-                            datecreated: row[0].datecreated,
-                            dateupdated: row[0].dateupdated,
-                            email: row[0].email,
-                            facebook: row[0].facebook,
-                            facebook_password: row[0].facebook_password,
-                            gplus: row[0].gplus,
-                            gplus_password: row[0].gplus_password,
-                            id: row[0].id,
-                            linkedin: row[0].linkedin,
-                            linkedin_password: row[0].linkedin_password,
-                            message_status: row[0].message_status,
-                            mobile_number: row[0].mobile_number,
-                            name: row[0].name,
-                            password: row[0].password,
-                            pic_blob: primPic,
-                            pic_file_name: row[0].pic_file_name,
-                            twitter: row[0].twitter,
-                            twitter_password: row[0].twitter_password
-                        }],
-                        success: true
-                    }]);
                 });
             }
         }
