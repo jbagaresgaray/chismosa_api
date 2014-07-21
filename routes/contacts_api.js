@@ -43,9 +43,6 @@ router.route('/contacts')
 
         req.checkBody('areacode', 'Please enter Area Code').notEmpty();
         req.checkBody('mobile_number', 'Please enter Mobile Number').notEmpty();
-        req.checkBody('name', 'Please enter Name').notEmpty();
-        req.checkBody('email', 'Please enter Email Address').notEmpty();
-        req.checkBody('password', 'Please enter Password').notEmpty();
         req.checkBody('user_id', 'No user id found').notEmpty();
 
         var errors = req.validationErrors(true);
@@ -58,13 +55,11 @@ router.route('/contacts')
             return;
         } else {
             if (connection) {
-                var sSQL = 'INSERT INTO user_contacts (user_id,contact_name,contact_areacode,contact_number,contact_email,date_create) VALUES(\'' + req.body.user_id + '\',\'' + req.body.name + '\',\'' + req.body.areacode + '\',\'' + req.body.mobile_number + '\',\'' + req.body.email + '\',NOW())';
+                var sSQL = 'INSERT INTO user_contacts (user_id,contact_name,contact_areacode,contact_number,contact_email,date_create) VALUES(\'' + req.body.user_id + '\',\'' + mysql_real_escape_string(req.body.name) + '\',\'' + req.body.areacode + '\',\'' + req.body.mobile_number + '\',\'' + req.body.email + '\',NOW())';
                 connection.query(sSQL,
                     function(err, rows, fields) {
                         if (err) throw err;
-
-                        if (rows)
-                            res.contentType('application/json');
+                        res.contentType('application/json');
                         res.send([{
                             "message": 'Contact successfully created!',
                             "_Id": rows.insertId,
@@ -89,6 +84,30 @@ router.route('/contacts/:user_id')
         }
     });
 
+router.route('/contacts/mobile/:mobile_number')
+    .get(function(req, res) {
+        var mobile_number = req.params.mobile_number;
+        if (connection) {
+            var queryString = 'SELECT * FROM user_contacts where contact_number = ?';
+            connection.query(queryString, [mobile_number], function(err, rows, fields) {
+                if (err) throw err;
+                if (rows.length > 0) {
+                    res.contentType('application/json');
+                    res.send([{
+                        "success": true
+                    }]);
+                    res.end();
+                } else {
+                    res.contentType('application/json');
+                    res.send([{
+                        "success": false
+                    }]);
+                    res.end();
+                }
+            });
+        }
+    });
+
 router.route('/user_contacts/:user_id/:id')
     .get(function(req, res) {
         var user_id = req.params.user_id;
@@ -103,4 +122,20 @@ router.route('/user_contacts/:user_id/:id')
                 res.end();
             });
         }
+    })
+    .delete(function(req, res) {
+        var user_id = req.params.user_id;
+        var id = req.params.id;
+        connection.query('DELETE FROM user_contacts WHERE user_id = ' + user_id + ' AND id = ' + id, function(err, result) {
+            if (err) throw err;
+
+            if (result)
+                res.type('application/json');
+            res.send([{
+                "message": 'Message deleted',
+                "success": true
+            }]);
+        });
     });
+
+module.exports = router;
