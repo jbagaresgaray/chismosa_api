@@ -9,6 +9,32 @@ var connection = mysql.createConnection({
     database: 'chismosa'
 });
 
+function mysql_real_escape_string(str) {
+    return str.replace(/[\0\x08\x09\x1a\n\r"'\\\%]/g, function(char) {
+        switch (char) {
+            case "\0":
+                return "\\0";
+            case "\x08":
+                return "\\b";
+            case "\x09":
+                return "\\t";
+            case "\x1a":
+                return "\\z";
+            case "\n":
+                return "\\n";
+            case "\r":
+                return "\\r";
+            case "\"":
+            case "'":
+            case "\\":
+            case "%":
+                return "\\" + char; // prepends a backslash to backslash, percent,
+                // and double/single quotes
+        }
+    });
+}
+
+
 /* GET users listing. */
 router.get('/', function(req, res) {
     res.send('this is the User API');
@@ -116,38 +142,37 @@ router.route('/user/:id')
             });
         }
     })
+    .put(function(req, res) {
+        req.checkBody('areacode', 'Please enter Area Code').notEmpty();
+        req.checkBody('mobile_number', 'Please enter Mobile Number').notEmpty();
+        req.checkBody('name', 'Please enter Name').notEmpty();
+        req.checkBody('email', 'Please enter Email Address').notEmpty();
 
-.put(function(req, res) {
-    req.checkBody('areacode', 'Please enter Area Code').notEmpty();
-    req.checkBody('mobile_number', 'Please enter Mobile Number').notEmpty();
-    req.checkBody('name', 'Please enter Name').notEmpty();
-    req.checkBody('email', 'Please enter Email Address').notEmpty();
+        var errors = req.validationErrors(true);
+        if (errors) {
+            res.contentType('application/json');
+            res.send([{
+                "message": errors,
+                "success": false
+            }]);
+            return;
+        } else {
 
-    var errors = req.validationErrors(true);
-    if (errors) {
-        res.contentType('application/json');
-        res.send([{
-            "message": errors,
-            "success": false
-        }]);
-        return;
-    } else {
+            if (connection) {
+                var queryString = 'UPDATE user SET name=?, mobile_number=?,areacode=?,email=? where id = ?';
+                connection.query(queryString, [req.body.name, req.body.mobile_number, req.body.areacode, req.body.email, req.params.id], function(err, result) {
+                    if (err) throw err;
 
-        if (connection) {
-            var queryString = 'UPDATE user SET name=?, mobile_number=?,areacode=?,email=? where id = ?';
-            connection.query(queryString, [req.body.name, req.body.mobile_number, req.body.areacode, req.body.email, req.params.id], function(err, result) {
-                if (err) throw err;
-
-                if (result)
-                    res.type('application/json');
-                res.send([{
-                    "message": 'Record Successfully updated!',
-                    "success": true
-                }]);
-            });
+                    if (result)
+                        res.type('application/json');
+                    res.send([{
+                        "message": 'Record Successfully updated!',
+                        "success": true
+                    }]);
+                });
+            }
         }
-    }
-})
+    })
     .delete(function(req, res) {
         connection.query('DELETE FROM user WHERE id = ' + req.params.id, function(err, result) {
             if (err) throw err;

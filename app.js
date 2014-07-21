@@ -11,6 +11,7 @@ var expressValidator = require('express-validator');
 var routes = require('./routes/index');
 var users = require('./routes/users_api');
 var message = require('./routes/message_api');
+var contacts = require('./routes/contacts_api');
 
 var app = express();
 
@@ -39,6 +40,7 @@ app.use(allowCrossDomain);
 app.use('/', routes);
 app.use('/users_api', users);
 app.use('/message_api', message);
+app.use('/contacts_api', contacts);
 
 /// catch 404 and forward to error handler
 app.use(function(req, res, next) {

@@ -9,7 +9,6 @@ var connection = mysql.createConnection({
     database: 'chismosa'
 });
 
-
 function mysql_real_escape_string(str) {
     return str.replace(/[\0\x08\x09\x1a\n\r"'\\\%]/g, function(char) {
         switch (char) {
@@ -36,15 +35,18 @@ function mysql_real_escape_string(str) {
 }
 
 router.get('/', function(req, res) {
-    res.send('this the Message / Chat API');
+    res.send('this the Contacts API');
 });
 
-router.route('/chat')
+router.route('/contacts')
     .post(function(req, res) {
 
-        req.checkBody('message', 'Please enter Chat / Message').notEmpty();
-        req.checkBody('user_id', 'User ID is Empty').notEmpty();
-        req.checkBody('receiver_id', 'Receiver ID is Empty').notEmpty();
+        req.checkBody('areacode', 'Please enter Area Code').notEmpty();
+        req.checkBody('mobile_number', 'Please enter Mobile Number').notEmpty();
+        req.checkBody('name', 'Please enter Name').notEmpty();
+        req.checkBody('email', 'Please enter Email Address').notEmpty();
+        req.checkBody('password', 'Please enter Password').notEmpty();
+        req.checkBody('user_id', 'No user id found').notEmpty();
 
         var errors = req.validationErrors(true);
         if (errors) {
@@ -56,64 +58,49 @@ router.route('/chat')
             return;
         } else {
             if (connection) {
-                var sSQL = 'INSERT INTO messages (user_id,receiver_id,message,datecreated) VALUES(\'' + req.body.user_id + '\',\'' + req.body.receiver_id + '\',\'' + mysql_real_escape_string(req.body.message) + '\',NOW())';
+                var sSQL = 'INSERT INTO user_contacts (user_id,contact_name,contact_areacode,contact_number,contact_email,date_create) VALUES(\'' + req.body.user_id + '\',\'' + req.body.name + '\',\'' + req.body.areacode + '\',\'' + req.body.mobile_number + '\',\'' + req.body.email + '\',NOW())';
                 connection.query(sSQL,
                     function(err, rows, fields) {
                         if (err) throw err;
+
                         if (rows)
                             res.contentType('application/json');
                         res.send([{
-                            "message": 'Message Sent!',
+                            "message": 'Contact successfully created!',
                             "_Id": rows.insertId,
                             "success": true
                         }]);
                     });
             }
         }
-
     });
 
-
-router.route('/chat/:user_id/:receiver_id')
+router.route('/contacts/:user_id')
     .get(function(req, res) {
         var user_id = req.params.user_id;
-        var receiver_id = req.params.receiver_id;
-
         if (connection) {
-            var queryString = 'SELECT * FROM messages where user_id = ? AND receiver_id=?';
-            connection.query(queryString, [user_id, receiver_id], function(err, rows, fields) {
+            var queryString = 'SELECT * FROM user_contacts where user_id = ?';
+            connection.query(queryString, [user_id], function(err, rows, fields) {
                 if (err) throw err;
                 res.contentType('application/json');
                 res.send(rows);
                 res.end();
             });
         }
-    })
-    .delete(function(req, res) {
-        connection.query('DELETE FROM messages WHERE user_id = ' + req.params.user_id + ' AND receiver_id = ' + req.params.receiver_id, function(err, result) {
-            if (err) throw err;
-
-            if (result)
-                res.type('application/json');
-            res.send([{
-                "message": 'Message deleted',
-                "success": true
-            }]);
-        });
     });
 
-router.route('/chat/delete/:user_id/:chat_id')
-    .delete(function(req, res) {
-        connection.query('DELETE FROM messages WHERE user_id = ' + req.params.user_id + ' AND id = ' + req.params.chat_id, function(err, result) {
-            if (err) throw err;
+router.route('/user_contacts/:user_id/:id')
+    .get(function(req, res) {
+        var user_id = req.params.user_id;
+        var id = req.params.id;
 
-            if (result)
-                res.type('application/json');
-            res.send([{
-                "message": 'Message deleted',
-                "success": true
-            }]);
-        });
+        if (connection) {
+            var queryString = 'SELECT * FROM user_contacts where user_id = ? AND id = ?';
+            connection.query(queryString, [user_id, id], function(err, rows, fields) {
+                if (err) throw err;
+                res.contentType('application/json');
+                res.send(rows);
+                res.end();
+            });
+        }
     });
-
-module.exports = router;
