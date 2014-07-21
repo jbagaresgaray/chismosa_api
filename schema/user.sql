@@ -21,6 +21,5 @@ CREATE TABLE `user` (
   `pic_blob` LONGBLOB NULL,
   `cover_blob` LONGBLOB NULL,
   `cover_file_name` VARCHAR(255)
-
   PRIMARY KEY (`id`)
 );
