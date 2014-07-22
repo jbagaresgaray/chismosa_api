@@ -181,21 +181,57 @@ router.route('/user/:id')
     .get(function(req, res) {
         var id = req.params.id;
         if (connection) {
-            var queryString = 'SELECT * FROM user where id = ?';
-            connection.query(queryString, [id], function(err, rows, fields) {
+            var queryString = 'SELECT * FROM user where id = ? LIMIT 1';
+            connection.query(queryString, [id], function(err, row, fields) {
                 if (err) throw err;
-                if (rows.length > 0) {
-                    res.contentType('application/json');
-                    res.send([{
-                        "success": true,
-                        "message": rows
+                var primPic, coverPhoto;
+                console.log(row.length);
+                if (row.length > 0) {
+
+                    if (row[0].pic_blob) {
+                        primPic = new Buffer(row[0].pic_blob, 'binary').toString('base64');
+                    } else {
+                        primPic = null;
+                    }
+
+                    if (row[0].cover_blob) {
+                        coverPhoto = new Buffer(row[0].cover_blob, 'binary').toString('base64');
+                    } else {
+                        coverPhoto = null;
+                    }
+
+                    res.json([{
+                        users: [{
+                            active: row[0].active[0],
+                            areacode: row[0].areacode,
+                            cover_blob: coverPhoto,
+                            cover_file_name: row[0].cover_file_name,
+                            datecreated: row[0].datecreated,
+                            dateupdated: row[0].dateupdated,
+                            email: row[0].email,
+                            facebook: row[0].facebook,
+                            facebook_password: row[0].facebook_password,
+                            gplus: row[0].gplus,
+                            gplus_password: row[0].gplus_password,
+                            id: row[0].id,
+                            linkedin: row[0].linkedin,
+                            linkedin_password: row[0].linkedin_password,
+                            message_status: row[0].message_status,
+                            mobile_number: row[0].mobile_number,
+                            name: row[0].name,
+                            password: row[0].password,
+                            pic_blob: primPic,
+                            pic_file_name: row[0].pic_file_name,
+                            twitter: row[0].twitter,
+                            twitter_password: row[0].twitter_password
+                        }],
+                        success: true
                     }]);
-                    res.end();
                 } else {
                     res.contentType('application/json');
                     res.send([{
                         "success": false,
-                        "message": 'Sorry no record found'
+                        "message": 'No user existed with that account'
                     }]);
                     res.end();
                 }
@@ -217,60 +253,50 @@ router.route('/user/:id')
 
 router.route('/user/name/:id')
     .put(function(req, res) {
-        req.checkBody('areacode', 'Please enter Area Code').notEmpty();
-        req.checkBody('mobile_number', 'Please enter Mobile Number').notEmpty();
-        req.checkBody('name', 'Please enter Name').notEmpty();
-        req.checkBody('email', 'Please enter Email Address').notEmpty();
+        if (connection) {
+            var queryString = 'UPDATE user SET name=?, mobile_number=?,areacode=?,email=? where id = ?';
+            connection.query(queryString, [req.body.name, req.body.mobile_number, req.body.areacode, req.body.email, req.params.id], function(err, result) {
+                if (err) throw err;
 
-        var errors = req.validationErrors(true);
-        if (errors) {
-            res.contentType('application/json');
-            res.send([{
-                "message": errors,
-                "success": false
-            }]);
-            return;
-        } else {
-            if (connection) {
-                var queryString = 'UPDATE user SET name=?, mobile_number=?,areacode=?,email=? where id = ?';
-                connection.query(queryString, [req.body.name, req.body.mobile_number, req.body.areacode, req.body.email, req.params.id], function(err, result) {
-                    if (err) throw err;
-
-                    if (result)
-                        res.type('application/json');
+                if (result) {
+                    res.type('application/json');
                     res.send([{
-                        "message": 'Record Successfully updated!',
+                        "message": 'Name Successfully updated!',
                         "success": true
                     }]);
-                });
-            }
+                } else {
+                    res.type('application/json');
+                    res.send([{
+                        "message": 'An error occur while updating user\'s Name',
+                        "success": false
+                    }]);
+                }
+
+            });
         }
     });
 
 router.route('/user/status/:id')
     .put(function(req, res) {
-        var errors = req.validationErrors(true);
-        if (errors) {
-            res.contentType('application/json');
-            res.send([{
-                "message": errors,
-                "success": false
-            }]);
-            return;
-        } else {
-            if (connection) {
-                var queryString = 'UPDATE user SET name=?, mobile_number=?,areacode=?,email=? where id = ?';
-                connection.query(queryString, [mysql_real_escape_string(req.body.status), req.params.id], function(err, result) {
-                    if (err) throw err;
+        if (connection) {
+            var queryString = 'UPDATE user SET message_status=? where id = ?';
+            connection.query(queryString, [mysql_real_escape_string(req.body.message_status), req.params.id], function(err, result) {
+                if (err) throw err;
 
-                    if (result)
-                        res.type('application/json');
+                if (result) {
+                    res.type('application/json');
                     res.send([{
-                        "message": 'Record Successfully updated!',
+                        "message": 'Status posted!',
                         "success": true
                     }]);
-                });
-            }
+                } else {
+                    res.type('application/json');
+                    res.send([{
+                        "message": 'An error occur while updating user\'s Name',
+                        "success": false
+                    }]);
+                }
+            });
         }
     });
 
@@ -294,12 +320,19 @@ router.route('/user/mobile/:id')
                 connection.query(queryString, [req.body.mobile_number, req.params.id], function(err, result) {
                     if (err) throw err;
 
-                    if (result)
+                    if (result) {
                         res.type('application/json');
-                    res.send([{
-                        "message": 'Record Successfully updated!',
-                        "success": true
-                    }]);
+                        res.send([{
+                            "message": 'Mobile Number Successfully updated!',
+                            "success": true
+                        }]);
+                    } else {
+                        res.type('application/json');
+                        res.send([{
+                            "message": 'An error occur while updating user\'s Name',
+                            "success": false
+                        }]);
+                    }
                 });
             }
         }
@@ -307,29 +340,25 @@ router.route('/user/mobile/:id')
 
 router.route('/user/email/:id')
     .put(function(req, res) {
-        req.checkBody('email', 'Please enter Email Address').notEmpty();
-        var errors = req.validationErrors(true);
-        if (errors) {
-            res.contentType('application/json');
-            res.send([{
-                "message": errors,
-                "success": false
-            }]);
-            return;
-        } else {
-            if (connection) {
-                var queryString = 'UPDATE user SET email=? where id = ?';
-                connection.query(queryString, [mysql_real_escape_string(req.body.email), req.params.id], function(err, result) {
-                    if (err) throw err;
+        if (connection) {
+            var queryString = 'UPDATE user SET email=? where id = ?';
+            connection.query(queryString, [mysql_real_escape_string(req.body.email), req.params.id], function(err, result) {
+                if (err) throw err;
 
-                    if (result)
-                        res.type('application/json');
+                if (result) {
+                    res.type('application/json');
                     res.send([{
-                        "message": 'Record Successfully updated!',
+                        "message": 'Email Successfully updated!',
                         "success": true
                     }]);
-                });
-            }
+                } else {
+                    res.type('application/json');
+                    res.send([{
+                        "message": 'An error occur while updating user\'s Name',
+                        "success": false
+                    }]);
+                }
+            });
         }
     });
 
@@ -343,6 +372,21 @@ router.route('/user/picture:user_id')
                 res.contentType('application/json');
                 res.send(rows);
                 res.end();
+            });
+        }
+    })
+    .put(function(req, res) {
+        if (connection) {
+            var queryString = 'UPDATE user SET email=? where id = ?';
+            connection.query(queryString, [mysql_real_escape_string(req.body.email), req.params.id], function(err, result) {
+                if (err) throw err;
+
+                if (result)
+                    res.type('application/json');
+                res.send([{
+                    "message": 'Record Successfully updated!',
+                    "success": true
+                }]);
             });
         }
     });

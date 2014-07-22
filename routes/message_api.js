@@ -73,19 +73,56 @@ router.route('/chat')
 
     });
 
+router.route('/chat/:user_id')
+    .get(function(req, res) {
+        var user_id = req.params.user_id;
+        if (connection) {
+            var queryString = 'SELECT  DISTINCT(SELECT contact_name FROM user_contacts WHERE id = receiver_id LIMIT 1) AS `name`,receiver_id,message, DATE_FORMAT(datecreated,\'%M %e, %h:%i%p\')  AS datecreated \
+            FROM messages WHERE user_id=' + user_id + ' GROUP BY receiver_id;';
+            connection.query(queryString, function(err, rows, fields) {
+                if (err) throw err;
+                if (rows.length > 0) {
+                    res.contentType('application/json');
+                    res.send([{
+                        "success": true,
+                        "data": rows
+                    }]);
+                    res.end();
+                } else {
+                    res.contentType('application/json');
+                    res.send([{
+                        "success": false
+                    }]);
+                    res.end();
+                }
+            });
+        }
+    });
 
-router.route('/chat/:user_id/:receiver_id')
+
+router.route('/chat/user/:user_id/:receiver_id')
     .get(function(req, res) {
         var user_id = req.params.user_id;
         var receiver_id = req.params.receiver_id;
 
         if (connection) {
-            var queryString = 'SELECT * FROM messages where user_id = ? AND receiver_id=?';
+            var queryString = 'SELECT id,user_id,receiver_id,message,DATE_FORMAT(datecreated,\'%M %e, %h:%i%p\')  AS datecreated FROM messages where user_id = ? AND receiver_id=?';
             connection.query(queryString, [user_id, receiver_id], function(err, rows, fields) {
                 if (err) throw err;
-                res.contentType('application/json');
-                res.send(rows);
-                res.end();
+                if (rows.length > 0) {
+                    res.contentType('application/json');
+                    res.send([{
+                        "success": true,
+                        "data": rows
+                    }]);
+                    res.end();
+                } else {
+                    res.contentType('application/json');
+                    res.send([{
+                        "success": false
+                    }]);
+                    res.end();
+                }
             });
         }
     })
@@ -101,6 +138,8 @@ router.route('/chat/:user_id/:receiver_id')
             }]);
         });
     });
+
+
 
 router.route('/chat/delete/:user_id/:chat_id')
     .delete(function(req, res) {
