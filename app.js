@@ -12,6 +12,9 @@ var routes = require('./routes/index');
 var users = require('./routes/users_api');
 var message = require('./routes/message_api');
 var contacts = require('./routes/contacts_api');
+var login = require('./routes/login_api');
+var search = require('./routes/search_api');
+var notif = require('./routes/notif_api');
 
 var app = express();
 
@@ -41,6 +44,9 @@ app.use('/', routes);
 app.use('/users_api', users);
 app.use('/message_api', message);
 app.use('/contacts_api', contacts);
+app.use('/login_api', login);
+app.use('/search_api', search);
+app.use('/notif_api', notif);
 
 /// catch 404 and forward to error handler
 app.use(function(req, res, next) {
