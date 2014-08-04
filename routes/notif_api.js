@@ -47,7 +47,7 @@ router.route('/notification/:user_id')
 
         if (connection) {
             connection.query('SELECT n.id, n.notify_desc,u.name,u.mobile_number,u.email,u.id as user_id,u.pic_blob,DATE_FORMAT(n.datecreated,\'%M %e, %h:%i%p\') AS datecreated\
-                FROM notification n ,user u WHERE CASE WHEN n.user_id = ' + user_id + ' THEN n.receiver_id = U.id WHEN n.receiver_id= ' + user_id + ' THEN n.user_id= U.id END AND n.is_read = 0;',
+                FROM user u INNER JOIN notification n ON n.user_id = u.id WHERE n.receiver_id= ' + user_id + ' AND n.is_read = 0;',
                 function(err, rows, fields) {
                     if (err) throw err;
 
@@ -76,7 +76,8 @@ router.route('/notification/:user_id')
                         res.contentType('application/json');
                         res.send([{
                             "notif": data,
-                            "success": true
+                            "success": true,
+                            "count": rows.length
                         }]);
                         res.end();
                     } else {

@@ -8,35 +8,55 @@ var connection = mysql.createConnection({
     database: 'chismosa'
 });
 
+var app = express()();
+var http = require('http').Server(app);
+var io = require('socket.io')(http);
+
+io.on('connection', function (socket) {
+    console.log('RedisChat - user connected');
+
+    socket.on('disconnect', function () {
+        console.log('user disconnected');
+    });
+    socket.on('message', function (message) {
+        console.log('message: ' + message);
+        io.emit('message', {
+            message: message
+        });
+    });
+
+});
+
+
 function mysql_real_escape_string(str) {
-    return str.replace(/[\0\x08\x09\x1a\n\r"'\\\%]/g, function(char) {
+    return str.replace(/[\0\x08\x09\x1a\n\r"'\\\%]/g, function (char) {
         switch (char) {
-            case "\0":
-                return "\\0";
-            case "\x08":
-                return "\\b";
-            case "\x09":
-                return "\\t";
-            case "\x1a":
-                return "\\z";
-            case "\n":
-                return "\\n";
-            case "\r":
-                return "\\r";
-            case "\"":
-            case "'":
-            case "\\":
-            case "%":
-                return "\\" + char; // prepends a backslash to backslash, percent,
-                // and double/single quotes
+        case "\0":
+            return "\\0";
+        case "\x08":
+            return "\\b";
+        case "\x09":
+            return "\\t";
+        case "\x1a":
+            return "\\z";
+        case "\n":
+            return "\\n";
+        case "\r":
+            return "\\r";
+        case "\"":
+        case "'":
+        case "\\":
+        case "%":
+            return "\\" + char; // prepends a backslash to backslash, percent,
+            // and double/single quotes
         }
     });
 }
-router.get('/', function(req, res) {
+router.get('/', function (req, res) {
     res.send('this the Message / Chat API');
 });
 router.route('/chat')
-    .post(function(req, res) {
+    .post(function (req, res) {
         req.checkBody('message', 'Please enter Chat / Message').notEmpty();
         req.checkBody('user_id', 'User ID is Empty').notEmpty();
         req.checkBody('receiver_id', 'Receiver ID is Empty').notEmpty();
@@ -53,7 +73,7 @@ router.route('/chat')
             if (connection) {
                 var sSQL = 'INSERT INTO messages (user_id,receiver_id,message,`from`,datecreated) VALUES(\'' + req.body.user_id + '\',\'' + req.body.receiver_id + '\',\'' + mysql_real_escape_string(req.body.message) + '\',\'' + req.body.user_id + '\',NOW())';
                 connection.query(sSQL,
-                    function(err, rows, fields) {
+                    function (err, rows, fields) {
                         if (err) throw err;
                         if (rows)
                             res.contentType('application/json');
@@ -61,13 +81,13 @@ router.route('/chat')
                             "message": 'Message Sent!',
                             "_Id": rows.insertId,
                             "success": true
-                        }]);
+                    }]);
                     });
             }
         }
     });
 router.route('/chat/:user_id')
-    .get(function(req, res) {
+    .get(function (req, res) {
         var user_id = req.params.user_id;
         if (connection) {
             /*var queryString = 'SELECT  DISTINCT(SELECT name FROM user WHERE id = receiver_id LIMIT 1) AS `name`,(SELECT `pic_blob` FROM user WHERE id = receiver_id LIMIT 1) AS pic_blob,receiver_id,message, DATE_FORMAT(datecreated,\'%M %e, %h:%i%p\')  AS datecreated \
@@ -78,7 +98,7 @@ FROM messages WHERE user_id=' + user_id + ' AND `from` =' + user_id + ' GROUP BY
             var queryString = 'SELECT DISTINCT U.`name`,U.pic_blob,U.id AS receiver_id,message,DATE_FORMAT(M.datecreated,\'%M %e, %h:%i%p\')  AS datecreated \
             FROM messages M, user U WHERE CASE WHEN M.user_id = ' + user_id + ' THEN M.receiver_id = U.id WHEN M.receiver_id= ' + user_id + ' THEN M.user_id= U.id END GROUP BY U.id;';
 
-            connection.query(queryString, function(err, rows, fields) {
+            connection.query(queryString, function (err, rows, fields) {
                 if (err) throw err;
                 var primPic;
                 if (rows.length > 0) {
@@ -116,14 +136,14 @@ FROM messages WHERE user_id=' + user_id + ' AND `from` =' + user_id + ' GROUP BY
     });
 
 router.route('/chat/user/:user_id/:receiver_id')
-    .get(function(req, res) {
+    .get(function (req, res) {
         var user_id = req.params.user_id;
         var receiver_id = req.params.receiver_id;
         if (connection) {
-            var queryString = 'SELECT id,user_id,receiver_id,message,DATE_FORMAT(datecreated,\'%M %e, %h:%i%p\')  AS datecreated\
-            FROM messages where (user_id = \'' + user_id + '\' OR receiver_id=\'' + user_id + '\') AND (user_id = \'' + receiver_id + '\' OR receiver_id=\'' + receiver_id + '\')';
+            var queryString = 'SELECT m.id,m.user_id,m.receiver_id,m.message,DATE_FORMAT(m.datecreated,\'%M %e, %h:%i%p\')  AS datecreated\
+            FROM messages m where (m.user_id = \'' + user_id + '\' OR m.receiver_id=\'' + user_id + '\') AND (m.user_id = \'' + receiver_id + '\' OR m.receiver_id=\'' + receiver_id + '\') ORDER BY m.datecreated;';
 
-            connection.query(queryString, [user_id, receiver_id], function(err, rows, fields) {
+            connection.query(queryString, [user_id, receiver_id], function (err, rows, fields) {
                 if (err) throw err;
                 if (rows.length > 0) {
                     res.contentType('application / json');
@@ -142,8 +162,8 @@ router.route('/chat/user/:user_id/:receiver_id')
             });
         }
     })
-    .delete(function(req, res) {
-        connection.query('DELETE FROM messages WHERE user_id = ' + req.params.user_id + ' AND receiver_id = ' + req.params.receiver_id, function(err, result) {
+    .delete(function (req, res) {
+        connection.query('DELETE FROM messages WHERE user_id = ' + req.params.user_id + ' AND receiver_id = ' + req.params.receiver_id, function (err, result) {
             if (err) throw err;
             if (result)
                 res.type('application / json ');
@@ -155,8 +175,8 @@ router.route('/chat/user/:user_id/:receiver_id')
     });
 
 router.route(' / chat / delete / : user_id / : chat_id ')
-    .delete(function(req, res) {
-        connection.query('DELETE FROM messages WHERE user_id = ' + req.params.user_id + 'AND id = ' + req.params.chat_id, function(err, result) {
+    .delete(function (req, res) {
+        connection.query('DELETE FROM messages WHERE user_id = ' + req.params.user_id + 'AND id = ' + req.params.chat_id, function (err, result) {
             if (err) throw err;
             if (result)
                 res.type('application / json ');
